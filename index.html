@@ -10,20 +10,21 @@
         :root {
             --primary: #008069;
             --primary-dark: #005c4b;
-            --bg-light: #f0f2f5;
-            --bg-chat: #efeae2;
+            --bg-light: #f0f2f5; /* Background for headers and app */
+            --bg-chat: #efeae2; /* Beige chat background */
             --bubble-sent: #d9fdd3;
             --bubble-recv: #ffffff;
             --text-main: #111b21;
             --text-secondary: #667781;
             --border-light: #e9edef;
+            --header-icon: #54656f;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: #d1d7db; height: 100vh; display: flex; justify-content: center; overflow: hidden; }
         
         /* Desktop Web Layout */
-        #app-container { width: 100%; height: 100vh; display: flex; background: #f0f2f5; }
+        #app-container { width: 100%; height: 100vh; display: flex; background: var(--bg-light); }
         
         /* Sidebar (Chat List) */
         #sidebar { width: 30%; min-width: 340px; max-width: 450px; height: 100%; background: #fff; display: flex; flex-direction: column; border-right: 1px solid var(--border-light); }
@@ -31,7 +32,7 @@
         /* Main Chat Area */
         #main-chat { flex: 1; height: 100%; background: var(--bg-chat); display: flex; flex-direction: column; position: relative; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZWZlYWUyIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNkY2Q2Y2UiLz4KPC9zdmc+'); }
         
-        #empty-state { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; width: 100%; text-align: center; background: var(--bg-light); }
+        #empty-state { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; width: 100%; text-align: center; background: var(--bg-light); border-left: 1px solid var(--border-light); }
         #empty-state h2 { color: var(--text-secondary); font-weight: 400; }
         #empty-state p { color: #aaa; font-size: 0.9rem; margin-top: 10px; }
 
@@ -63,12 +64,16 @@
         .btn { width: 100%; height: 50px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 500; gap: 10px; border: 1px solid #ededef; background-color: white; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .btn:hover { border: 1px solid #2d79f3; }
 
-        /* === CHAT LIST (Sidebar) === */
-        .header { background: var(--primary); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 10; min-height: 60px; }
-        .header h2 { font-size: 1.3rem; font-weight: 500; letter-spacing: 0.5px; }
+        /* === CHAT LIST (Sidebar) - GRAY HEADER STYLE === */
+        .header { background: var(--bg-light); color: var(--header-icon); padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 10; min-height: 60px; border-bottom: 1px solid var(--border-light); }
+        .header h2 { font-size: 1.3rem; font-weight: 500; letter-spacing: 0.5px; color: var(--text-main); }
         .header-actions { display: flex; gap: 20px; }
-        .icon-btn { background: none; border: none; color: white; cursor: pointer; padding: 5px; display: flex; align-items: center; }
+        .icon-btn { background: none; border: none; color: var(--header-icon); cursor: pointer; padding: 5px; display: flex; align-items: center; }
         
+        .search-bar { padding: 8px 16px; background: #fff; border-bottom: 1px solid var(--border-light); }
+        .search-input { width: 100%; background: var(--bg-light); border: none; border-radius: 8px; padding: 10px 16px; font-size: 0.95rem; color: var(--text-main); }
+        .search-input:focus { outline: 1px solid #ced7de; }
+
         .chat-list { flex: 1; overflow-y: auto; background: #fff; }
         .chat-item { padding: 12px 16px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 15px; cursor: pointer; transition: background 0.2s; }
         .chat-item:hover { background: #f5f5f5; }
@@ -78,10 +83,10 @@
         .chat-info h3 { font-size: 1rem; font-weight: 500; color: var(--text-main); margin-bottom: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .chat-info p { font-size: 0.85rem; color: var(--text-secondary); }
 
-        /* === CHAT ROOM === */
-        .chat-header { display: flex; align-items: center; gap: 15px; width: 100%; padding: 10px 16px; background: var(--primary); color: white; }
-        .back-btn { background: none; border: none; color: white; cursor: pointer; padding: 0; display: flex; align-items: center; }
-        .chat-header h2 { font-size: 1.1rem; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* === CHAT ROOM - GRAY HEADER STYLE === */
+        .chat-header { display: flex; align-items: center; gap: 15px; width: 100%; padding: 10px 16px; background: var(--bg-light); color: var(--text-main); border-bottom: 1px solid var(--border-light); }
+        .back-btn { background: none; border: none; color: var(--header-icon); cursor: pointer; padding: 0; display: flex; align-items: center; }
+        .chat-header h2 { font-size: 1.1rem; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-main); }
         
         .messages-container { flex: 1; padding: 20px 10%; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
         .message-bubble { max-width: 45%; padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; position: relative; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); margin-top: 10px; }
@@ -128,6 +133,9 @@
                     <svg id="header-avatar-placeholder" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </button>
             </div>
+        </div>
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Search or start new chat" id="search-input" onkeyup="filterChats()">
         </div>
         <div class="chat-list" id="chat-list"></div>
     </div>
@@ -250,6 +258,7 @@
     let isLoginMode = false;
     let myProfile = null;
     let pendingAvatarFile = null;
+    let cachedChats = []; // Store chats for search functionality
 
     // Auth State Listener
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
@@ -279,12 +288,10 @@
         if (data) {
             myProfile = data;
             updateUIWithProfile(data);
-            // If they have no avatar, force them to set one
             if (!data.avatar_url) {
                 openProfileModal(true);
             }
         } else if (error && error.code === 'PGRST116') {
-            // Create profile if missing
             const { data: newProfile } = await supabaseClient.from('profiles').insert([{ id: currentUser.id, username: currentUser.email.split('@')[0] }]).select().single();
             myProfile = newProfile;
             updateUIWithProfile(newProfile);
@@ -366,8 +373,6 @@
             const fileName = `${currentUser.id}_${Date.now()}.jpg`;
             const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(fileName, pendingAvatarFile);
             if (uploadError) return alert("Error uploading image: " + uploadError.message);
-            
-            // Manually construct the public URL to ensure it works without extra policies
             avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
         }
 
@@ -378,7 +383,7 @@
         updateUIWithProfile(data);
         pendingAvatarFile = null;
         closeProfileModal();
-        loadChatList(); // Refresh chat list to show new name/avatar
+        loadChatList(); 
     }
 
     function copyNumber() {
@@ -421,10 +426,19 @@
     async function loadChatList() {
         const { data, error } = await supabaseClient.from('chats').select(`id, user1_id, user2_id, user1:profiles!chats_user1_id_fkey(username, avatar_url, converse_number), user2:profiles!chats_user2_id_fkey(username, avatar_url, converse_number)`).or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
         if (error) return console.error(error);
+        
+        cachedChats = data; // Cache for search
+        renderChatList(cachedChats);
+    }
+
+    function renderChatList(chats) {
         const chatList = document.getElementById('chat-list');
         chatList.innerHTML = '';
-        if(data.length === 0) { chatList.innerHTML = '<p style="text-align:center; color:#667781; padding:40px 20px; font-size:0.9rem;">No chats yet.<br>Click the pencil icon to start!</p>'; return; }
-        data.forEach(chat => {
+        if(chats.length === 0) { 
+            chatList.innerHTML = '<p style="text-align:center; color:#667781; padding:40px 20px; font-size:0.9rem;">No chats found.<br>Click the pencil icon to start!</p>'; 
+            return; 
+        }
+        chats.forEach(chat => {
             const isUser1 = chat.user1_id === currentUser.id;
             const otherUser = isUser1 ? chat.user2 : chat.user1;
             const div = document.createElement('div');
@@ -434,6 +448,16 @@
             div.innerHTML = `<div class="avatar">${avatarHtml}</div><div class="chat-info"><h3>${otherUser.username}</h3><p>Converse: ${otherUser.converse_number}</p></div>`;
             chatList.appendChild(div);
         });
+    }
+
+    function filterChats() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+        const filtered = cachedChats.filter(chat => {
+            const isUser1 = chat.user1_id === currentUser.id;
+            const otherUser = isUser1 ? chat.user2 : chat.user1;
+            return otherUser.username.toLowerCase().includes(searchTerm);
+        });
+        renderChatList(filtered);
     }
 
     // Chat Room Logic
@@ -446,7 +470,7 @@
         
         document.getElementById('empty-state').classList.add('hidden');
         document.getElementById('chat-room-screen').classList.remove('hidden');
-        document.getElementById('main-chat').classList.add('active'); // For mobile view
+        document.getElementById('main-chat').classList.add('active');
         
         await loadMessages();
         subscribeToMessages();
