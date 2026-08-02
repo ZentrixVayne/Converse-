@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Converse</title>
+    <link rel="icon" href="data:,">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
@@ -100,17 +101,17 @@
 </div>
 
 <script>
-    // 1. Initialize Supabase
+    // 1. Initialize Supabase (Renamed to supabaseClient to prevent crashing)
     const SUPABASE_URL = 'https://rgafvqhdkzbnxgsdfupv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJnYWZ2cWhka3pibnhnc2RmdXB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNzAwNjAsImV4cCI6MjEwMDc0NjA2MH0.VJjSDtA2laJA0Q4BSxLQBcE0yHfLcofoitOTRZhjTIY';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
     let currentChatId = null;
     let realtimeSubscription = null;
 
     // 2. Auth State Listener
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session) {
             currentUser = session.user;
             showScreen('chat-list-screen');
@@ -122,7 +123,7 @@
     });
 
     async function signInWithGoogle() {
-        await supabase.auth.signInWithOAuth({ provider: 'google' });
+        await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
     }
 
     async function signInWithEmail() {
@@ -130,13 +131,18 @@
         const password = document.getElementById('password-input').value;
         if(!email || !password) return alert("Enter email and password");
         
-        // Supabase handles both sign up and sign in (if user exists)
-        const { data, error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+        // Try to sign in
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        
         if (error) {
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-            if (signUpError) alert(signUpError.message);
+            // If sign in fails, try to sign up
+            const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password });
+            if (signUpError) {
+                alert(signUpError.message);
+            } else {
+                alert("Account created! Check your email to verify (if required), then login.");
+            }
         }
-        alert("Check your email for the login link!");
     }
 
     // 3. Screen Management
@@ -151,7 +157,7 @@
 
     // 4. Load Chat List
     async function loadChatList() {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('chats')
             .select(`
                 id, 
@@ -203,7 +209,7 @@
         const resultDiv = document.getElementById('search-result');
         resultDiv.innerHTML = 'Searching...';
 
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('profiles')
             .select('id, username')
             .eq('converse_number', number)
@@ -226,7 +232,7 @@
         closeNewChatModal();
         
         // Check if chat already exists
-        const { data: existingChat } = await supabase
+        const { data: existingChat } = await supabaseClient
             .from('chats')
             .select('id')
             .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${currentUser.id})`)
@@ -236,7 +242,7 @@
             openChat(existingChat.id, otherUsername);
         } else {
             // Create new chat
-            const { data: newChat, error } = await supabase
+            const { data: newChat, error } = await supabaseClient
                 .from('chats')
                 .insert([{ user1_id: currentUser.id, user2_id: otherUserId }])
                 .select().single();
@@ -259,7 +265,7 @@
     }
 
     async function loadMessages() {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('messages')
             .select('*')
             .eq('chat_id', currentChatId)
@@ -276,7 +282,7 @@
     function subscribeToMessages() {
         if (realtimeSubscription) realtimeSubscription.unsubscribe();
         
-        realtimeSubscription = supabase
+        realtimeSubscription = supabaseClient
             .channel('messages')
             .on('postgres_changes', 
                 { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${currentChatId}` }, 
@@ -308,7 +314,7 @@
 
         input.value = '';
         
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('messages')
             .insert([{ chat_id: currentChatId, sender_id: currentUser.id, content: text }]);
 
