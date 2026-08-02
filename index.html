@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Converse</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,93 +16,153 @@
             --bubble-recv: #ffffff;
             --text-main: #111b21;
             --text-secondary: #667781;
+            --border-light: #e9edef;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-light); height: 100vh; display: flex; justify-content: center; overflow: hidden; }
-        #app-container { width: 100%; max-width: 450px; background: #fff; height: 100vh; box-shadow: 0 0 50px rgba(0,0,0,0.1); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        body { background-color: #d1d7db; height: 100vh; display: flex; justify-content: center; overflow: hidden; }
         
-        /* Screen Transitions (FIXED) */
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; z-index: 1; }
-        .screen.active { transform: translateX(0); z-index: 2; }
-        /* Auth screen starts active and on top */
-        #auth-screen.active { transform: translateX(0); z-index: 3; }
-        /* When auth screen is NOT active, hide it completely */
-        #auth-screen:not(.active) { transform: translateX(-100%); pointer-events: none; z-index: 0; }
+        /* Desktop Web Layout */
+        #app-container { width: 100%; height: 100vh; display: flex; background: #f0f2f5; }
+        
+        /* Sidebar (Chat List) */
+        #sidebar { width: 30%; min-width: 340px; max-width: 450px; height: 100%; background: #fff; display: flex; flex-direction: column; border-right: 1px solid var(--border-light); }
+        
+        /* Main Chat Area */
+        #main-chat { flex: 1; height: 100%; background: var(--bg-chat); display: flex; flex-direction: column; position: relative; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZWZlYWUyIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNkY2Q2Y2UiLz4KPC9zdmc+'); }
+        
+        #empty-state { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; width: 100%; text-align: center; background: var(--bg-light); }
+        #empty-state h2 { color: var(--text-secondary); font-weight: 400; }
+        #empty-state p { color: #aaa; font-size: 0.9rem; margin-top: 10px; }
+
+        /* Mobile fallback */
+        @media (max-width: 768px) {
+            #app-container { flex-direction: column; }
+            #sidebar { width: 100%; max-width: 100%; display: flex; }
+            #main-chat { display: none; position: absolute; width: 100%; height: 100%; z-index: 10; }
+            #main-chat.active { display: flex; }
+        }
 
         /* === AUTH SCREEN === */
-        #auth-screen { justify-content: center; align-items: center; background: var(--bg-light); padding: 20px; text-align: left; overflow-y: auto; }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        .form { display: flex; flex-direction: column; gap: 10px; background-color: #ffffff; padding: 30px; width: 100%; max-width: 380px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); animation: fadeInUp 0.8s ease-out forwards; }
-        ::placeholder { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .form h2 { text-align: center; color: var(--primary); margin-bottom: 10px; font-size: 2rem; }
+        .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 380px; transform: scale(0.9); transition: transform 0.3s ease; box-shadow: 0 20px 50px rgba(0,0,0,0.2); text-align: left; }
+        .modal-overlay.active .modal { transform: scale(1); }
+        .modal h2, .modal h3 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        
+        .form { display: flex; flex-direction: column; gap: 15px; width: 100%; }
         .flex-column > label { color: var(--text-main); font-weight: 600; font-size: 14px; margin-bottom: 5px; display: block; }
         .inputForm { border: 1.5px solid #ecedec; border-radius: 10px; height: 50px; display: flex; align-items: center; padding-left: 10px; transition: 0.2s ease-in-out; }
-        .input { margin-left: 10px; border-radius: 10px; border: none; width: 85%; height: 100%; background: transparent; font-size: 15px; }
+        .input { margin-left: 10px; border: none; width: 85%; height: 100%; background: transparent; font-size: 15px; }
         .input:focus { outline: none; }
         .inputForm:focus-within { border: 1.5px solid #2d79f3; }
-        .button-submit { margin: 20px 0 10px 0; background-color: var(--primary); border: none; color: white; font-size: 15px; font-weight: 500; border-radius: 10px; height: 50px; width: 100%; cursor: pointer; align-self: center; transition: background 0.2s; }
+        .button-submit { background-color: var(--primary); border: none; color: white; font-size: 15px; font-weight: 500; border-radius: 10px; height: 50px; width: 100%; cursor: pointer; transition: background 0.2s; }
         .button-submit:hover { background-color: var(--primary-dark); }
         .p { text-align: center; color: var(--text-main); font-size: 14px; margin: 5px 0; }
-        .span { font-size: 14px; margin-left: 5px; color: #2d79f3; font-weight: 500; cursor: pointer; }
-        .btn { margin-top: 10px; width: 100%; height: 50px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 500; gap: 10px; border: 1px solid #ededef; background-color: white; cursor: pointer; transition: 0.2s; }
+        .span { color: #2d79f3; font-weight: 500; cursor: pointer; }
+        .btn { width: 100%; height: 50px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 500; gap: 10px; border: 1px solid #ededef; background-color: white; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .btn:hover { border: 1px solid #2d79f3; }
 
-        /* === CHAT LIST SCREEN === */
+        /* === CHAT LIST (Sidebar) === */
         .header { background: var(--primary); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 10; min-height: 60px; }
         .header h2 { font-size: 1.3rem; font-weight: 500; letter-spacing: 0.5px; }
         .header-actions { display: flex; gap: 20px; }
         .icon-btn { background: none; border: none; color: white; cursor: pointer; padding: 5px; display: flex; align-items: center; }
         
         .chat-list { flex: 1; overflow-y: auto; background: #fff; }
-        .chat-item { padding: 12px 16px; border-bottom: 1px solid #f0f2f5; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: background 0.2s; }
+        .chat-item { padding: 12px 16px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 15px; cursor: pointer; transition: background 0.2s; }
         .chat-item:hover { background: #f5f5f5; }
-        .chat-avatar { width: 48px; height: 48px; border-radius: 50%; background: #d1d7db; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; font-weight: 500; text-transform: uppercase; }
-        .chat-info { flex: 1; }
-        .chat-info h3 { font-size: 1rem; font-weight: 500; color: var(--text-main); margin-bottom: 4px; }
+        .avatar { width: 49px; height: 49px; border-radius: 50%; background: #d1d7db; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; font-weight: 500; text-transform: uppercase; overflow: hidden; flex-shrink: 0; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .chat-info { flex: 1; overflow: hidden; }
+        .chat-info h3 { font-size: 1rem; font-weight: 500; color: var(--text-main); margin-bottom: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .chat-info p { font-size: 0.85rem; color: var(--text-secondary); }
 
-        /* === CHAT ROOM SCREEN === */
-        .chat-header { display: flex; align-items: center; gap: 15px; width: 100%; }
+        /* === CHAT ROOM === */
+        .chat-header { display: flex; align-items: center; gap: 15px; width: 100%; padding: 10px 16px; background: var(--primary); color: white; }
         .back-btn { background: none; border: none; color: white; cursor: pointer; padding: 0; display: flex; align-items: center; }
         .chat-header h2 { font-size: 1.1rem; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
-        .messages-container { flex: 1; padding: 16px; overflow-y: auto; background-color: var(--bg-chat); display: flex; flex-direction: column; gap: 2px; background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZWZlYWUyIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNkY2Q2Y2UiLz4KPC9zdmc+'); }
-        .message-bubble { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; position: relative; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); margin-top: 8px; }
+        .messages-container { flex: 1; padding: 20px 10%; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+        .message-bubble { max-width: 45%; padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; position: relative; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); margin-top: 10px; }
         .message-bubble.sent { background: var(--bubble-sent); align-self: flex-end; border-top-right-radius: 0; }
         .message-bubble.received { background: var(--bubble-recv); align-self: flex-start; border-top-left-radius: 0; }
         .message-time { font-size: 0.65rem; color: var(--text-secondary); text-align: right; margin-top: 4px; display: block; }
         
-        .chat-input-area { padding: 10px 16px; background: var(--bg-light); display: flex; gap: 10px; align-items: center; border-top: 1px solid #e9e9e9; }
-        .chat-input-area input { flex: 1; margin: 0; border: none; border-radius: 20px; padding: 10px 16px; background: #fff; font-size: 0.95rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .chat-input-area { padding: 10px 10%; background: var(--bg-light); display: flex; gap: 15px; align-items: center; border-top: 1px solid var(--border-light); }
+        .chat-input-area input { flex: 1; border: none; border-radius: 8px; padding: 12px 16px; background: #fff; font-size: 0.95rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .chat-input-area input:focus { outline: none; }
-        .send-btn { background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background 0.2s; }
+        .send-btn { background: var(--primary); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background 0.2s; }
         .send-btn:hover { background: var(--primary-dark); }
 
-        /* === MODALS === */
-        .modal-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal { background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 320px; transform: scale(0.9); transition: transform 0.3s ease; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-        .modal-overlay.active .modal { transform: scale(1); }
-        .modal h3 { margin-bottom: 20px; text-align: center; color: var(--text-main); font-size: 1.2rem; }
-        
+        /* === PROFILE MODAL === */
         .profile-modal { text-align: center; }
-        .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 15px; text-transform: uppercase; }
+        .profile-avatar-container { position: relative; width: 120px; height: 120px; margin: 0 auto 20px; cursor: pointer; }
+        .profile-avatar { width: 100%; height: 100%; border-radius: 50%; background: #d1d7db; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #fff; overflow: hidden; border: 3px solid var(--primary); }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .upload-icon { position: absolute; bottom: 5px; right: 5px; background: var(--primary); color: white; border-radius: 50%; padding: 8px; border: 2px solid white; display: flex; align-items: center; justify-content: center; }
+        #avatar-upload { display: none; }
         .profile-name { font-size: 1.2rem; font-weight: 600; margin-bottom: 5px; }
-        .profile-number-box { background: var(--bg-light); padding: 12px; border-radius: 8px; margin: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+        .profile-number-box { background: var(--bg-light); padding: 15px; border-radius: 8px; margin: 20px 0; display: flex; justify-content: space-between; align-items: center; }
         .profile-number-label { font-size: 0.8rem; color: var(--text-secondary); }
         .profile-number { font-size: 1.1rem; font-weight: 600; letter-spacing: 1px; }
-        .copy-btn { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .copy-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
         .logout-btn { width: 100%; background: #ff4d4f; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 500; cursor: pointer; margin-top: 10px; }
+        
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
 <div id="app-container">
-    <!-- Auth Screen -->
-    <div id="auth-screen" class="screen active">
-        <form class="form" onsubmit="event.preventDefault(); handleAuthAction();">
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="header">
             <h2>Converse</h2>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="openNewChatModal()" title="New Chat">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                </button>
+                <button class="icon-btn" onclick="openProfileModal()" title="Profile">
+                    <img id="header-avatar" src="" alt="" style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; object-fit: cover; display: none;">
+                    <svg id="header-avatar-placeholder" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </button>
+            </div>
+        </div>
+        <div class="chat-list" id="chat-list"></div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div id="main-chat">
+        <div id="empty-state">
+            <h2>Converse for Web</h2>
+            <p>Select a chat to start conversing</p>
+        </div>
+        
+        <div id="chat-room-screen" class="hidden" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+            <div class="chat-header">
+                <button class="back-btn mobile-only" onclick="closeChat()" style="margin-right: 15px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <div class="avatar" style="width: 40px; height: 40px; font-size: 1rem;" id="chat-avatar"></div>
+                <h2 id="chat-username">User</h2>
+            </div>
+            <div class="messages-container" id="messages-container"></div>
+            <div class="chat-input-area">
+                <input type="text" id="message-input" placeholder="Type a message" onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auth Modal -->
+<div class="modal-overlay active" id="auth-modal">
+    <div class="modal">
+        <h2>Converse</h2>
+        <form class="form" onsubmit="event.preventDefault(); handleAuthAction();">
             <div id="name-field" class="flex-column">
                 <label>Name</label>
                 <div class="inputForm">
@@ -126,79 +186,60 @@
             </div>
             <button type="submit" class="button-submit" id="auth-btn-text">Sign Up</button>
             <p class="p">Already have an account? <span class="span" onclick="toggleAuthMode()">Login</span></p>
-            <button type="button" class="btn google" onclick="signInWithGoogle()">
+            <button type="button" class="btn" onclick="signInWithGoogle()">
                 <svg width="20" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#FBBB00" d="M113.47,309.408L95.648,375.94l-65.139,1.378C11.042,341.211,0,299.9,0,256c0-42.451,10.324-82.483,28.624-117.732h0.014l57.992,10.632l25.404,57.644c-5.317,15.501-8.215,32.141-8.215,49.456C103.821,274.792,107.225,292.797,113.47,309.408z"></path><path fill="#518EF8" d="M507.527,208.176C510.467,223.662,512,239.655,512,256c0,18.328-1.927,36.206-5.598,53.451c-12.462,58.683-45.025,109.925-90.134,146.187l-0.014-0.014l-73.044-3.727l-10.338-64.535c29.932-17.554,53.324-45.025,65.646-77.911h-136.89V208.176h138.887L507.527,208.176L507.527,208.176z"></path><path fill="#28B446" d="M416.253,455.624l0.014,0.014C372.396,490.901,316.666,512,256,512c-97.491,0-182.252-54.491-225.491-134.681l82.961-67.91c21.619,57.698,77.278,98.771,142.53,98.771c28.047,0,54.323-7.582,76.87-20.818L416.253,455.624z"></path><path fill="#F14336" d="M419.404,58.936l-82.933,67.896c-23.335-14.586-50.919-23.012-80.471-23.012c-66.729,0-123.429,42.957-143.965,102.724l-83.397-68.276h-0.014C71.23,56.123,157.06,0,256,0C318.115,0,375.068,22.126,419.404,58.936z"></path></svg>
                 Sign in with Google
             </button>
         </form>
     </div>
+</div>
 
-    <!-- Chat List Screen -->
-    <div id="chat-list-screen" class="screen">
-        <div class="header">
-            <h2>Converse</h2>
-            <div class="header-actions">
-                <button class="icon-btn" onclick="openNewChatModal()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                </button>
-                <button class="icon-btn" onclick="openProfileModal()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                </button>
+<!-- Profile / Onboarding Modal -->
+<div class="modal-overlay" id="profile-modal">
+    <div class="modal profile-modal">
+        <h3 id="profile-modal-title">My Profile</h3>
+        <div class="profile-avatar-container" onclick="document.getElementById('avatar-upload').click()">
+            <div class="profile-avatar" id="profile-avatar-preview">
+                <span id="profile-avatar-letter">U</span>
+            </div>
+            <div class="upload-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            </div>
+            <input type="file" id="avatar-upload" accept="image/*" onchange="previewAvatar(event)">
+        </div>
+        
+        <div class="flex-column">
+            <label>Profile Name</label>
+            <div class="inputForm">
+                <input type="text" id="profile-name-input" class="input" placeholder="Enter your name" />
             </div>
         </div>
-        <div class="chat-list" id="chat-list"></div>
-    </div>
 
-    <!-- Chat Room Screen -->
-    <div id="chat-room-screen" class="screen">
-        <div class="header">
-            <div class="chat-header">
-                <button class="back-btn" onclick="showScreen('chat-list-screen')">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                </button>
-                <div class="chat-avatar" style="width: 35px; height: 35px; font-size: 1rem; background: #e0e0e0;" id="chat-avatar"></div>
-                <h2 id="chat-username">User</h2>
+        <div class="profile-number-box">
+            <div>
+                <div class="profile-number-label">Your Converse Number</div>
+                <div class="profile-number" id="profile-number">000000</div>
             </div>
+            <button class="copy-btn" onclick="copyNumber()">Copy</button>
         </div>
-        <div class="messages-container" id="messages-container"></div>
-        <div class="chat-input-area">
-            <input type="text" id="message-input" placeholder="Type a message" onkeypress="handleKeyPress(event)">
-            <button class="send-btn" onclick="sendMessage()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-        </div>
-    </div>
 
-    <!-- New Chat Modal -->
-    <div class="modal-overlay" id="new-chat-modal">
-        <div class="modal">
-            <h3>Find User</h3>
-            <input type="text" id="converse-number-input" class="input" style="border: 1px solid #ccc; margin-bottom: 15px;" placeholder="Enter Converse Number">
-            <button class="button-submit" onclick="searchUser()">Search</button>
-            <div id="search-result" style="margin-top: 15px; text-align: center; font-size: 0.9rem;"></div>
-            <button class="btn" style="background: #f0f2f5; color: #333; margin-top: 10px; border: none;" onclick="closeNewChatModal()">Cancel</button>
-        </div>
+        <button class="button-submit" onclick="saveProfile()">Save Profile</button>
+        <button class="logout-btn" id="logout-btn" onclick="signOut()">Sign Out</button>
     </div>
+</div>
 
-    <!-- Profile Modal -->
-    <div class="modal-overlay" id="profile-modal">
-        <div class="modal profile-modal">
-            <div class="profile-avatar" id="profile-avatar">U</div>
-            <div class="profile-name" id="profile-name">User Name</div>
-            <div class="profile-number-box">
-                <div>
-                    <div class="profile-number-label">Your Converse Number</div>
-                    <div class="profile-number" id="profile-number">000000</div>
-                </div>
-                <button class="copy-btn" onclick="copyNumber()">Copy</button>
-            </div>
-            <button class="logout-btn" onclick="signOut()">Sign Out</button>
-        </div>
+<!-- New Chat Modal -->
+<div class="modal-overlay" id="new-chat-modal">
+    <div class="modal">
+        <h3>Find User</h3>
+        <input type="text" id="converse-number-input" class="input" style="border: 1px solid #ccc; margin-bottom: 15px; padding: 12px; border-radius: 8px; width: 100%;" placeholder="Enter Converse Number">
+        <button class="button-submit" onclick="searchUser()">Search</button>
+        <div id="search-result" style="margin-top: 15px; text-align: center; font-size: 0.9rem;"></div>
+        <button class="btn" style="background: #f0f2f5; color: #333; border: none;" onclick="closeNewChatModal()">Cancel</button>
     </div>
 </div>
 
 <script>
-    // 1. Initialize Supabase
     const SUPABASE_URL = 'https://rgafvqhdkzbnxgsdfupv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJnYWZ2cWhka3pibnhnc2RmdXB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNzAwNjAsImV4cCI6MjEwMDc0NjA2MH0.VJjSDtA2laJA0Q4BSxLQBcE0yHfLcofoitOTRZhjTIY';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -208,239 +249,217 @@
     let realtimeSubscription = null;
     let isLoginMode = false;
     let myProfile = null;
+    let pendingAvatarFile = null;
 
-    // 2. Check if user is already logged in when page loads
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-            currentUser = session.user;
-            fetchMyProfile().then(() => {
-                showScreen('chat-list-screen');
-                loadChatList();
-            });
-        }
-    });
-
-    // 3. Auth State Listener
+    // Auth State Listener
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             currentUser = session.user;
+            document.getElementById('auth-modal').classList.remove('active');
             await fetchMyProfile();
-            showScreen('chat-list-screen');
             loadChatList();
         } else {
             currentUser = null;
             myProfile = null;
-            showScreen('auth-screen');
+            document.getElementById('auth-modal').classList.add('active');
+        }
+    });
+
+    // Check session on load
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('auth-modal').classList.remove('active');
+            fetchMyProfile().then(() => loadChatList());
         }
     });
 
     async function fetchMyProfile() {
-        const { data, error } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
-        
+        const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
         if (data) {
             myProfile = data;
-            document.getElementById('profile-name').innerText = data.username || 'User';
-            document.getElementById('profile-number').innerText = data.converse_number || '000000';
-            document.getElementById('profile-avatar').innerText = (data.username || 'U').charAt(0).toUpperCase();
-        } else if (error) {
-            console.error("Error fetching profile:", error);
-            if (error.code === 'PGRST116') {
-                const { data: newProfile } = await supabaseClient
-                    .from('profiles')
-                    .insert([{ id: currentUser.id, username: currentUser.email.split('@')[0] }])
-                    .select().single();
-                myProfile = newProfile;
+            updateUIWithProfile(data);
+            // If they have no avatar, force them to set one
+            if (!data.avatar_url) {
+                openProfileModal(true);
             }
+        } else if (error && error.code === 'PGRST116') {
+            // Create profile if missing
+            const { data: newProfile } = await supabaseClient.from('profiles').insert([{ id: currentUser.id, username: currentUser.email.split('@')[0] }]).select().single();
+            myProfile = newProfile;
+            updateUIWithProfile(newProfile);
+            openProfileModal(true);
+        }
+    }
+
+    function updateUIWithProfile(data) {
+        const name = data.username || 'User';
+        const avatar = data.avatar_url;
+        
+        document.getElementById('profile-name-input').value = name;
+        document.getElementById('profile-number').innerText = data.converse_number || '000000';
+        
+        const preview = document.getElementById('profile-avatar-preview');
+        const letter = document.getElementById('profile-avatar-letter');
+        if (avatar) {
+            preview.innerHTML = `<img src="${avatar}" alt="Avatar">`;
+            document.getElementById('header-avatar').src = avatar;
+            document.getElementById('header-avatar').style.display = 'block';
+            document.getElementById('header-avatar-placeholder').style.display = 'none';
+        } else {
+            preview.innerHTML = `<span id="profile-avatar-letter">${name.charAt(0).toUpperCase()}</span>`;
+            document.getElementById('header-avatar').style.display = 'none';
+            document.getElementById('header-avatar-placeholder').style.display = 'block';
         }
     }
 
     function toggleAuthMode() {
         isLoginMode = !isLoginMode;
-        const btnText = document.getElementById('auth-btn-text');
-        const nameField = document.getElementById('name-field');
-        const toggleText = document.querySelector('.p .span');
-        
-        if (isLoginMode) {
-            btnText.innerText = "Login";
-            nameField.style.display = "none";
-            toggleText.innerText = "Sign Up";
-        } else {
-            btnText.innerText = "Sign Up";
-            nameField.style.display = "block";
-            toggleText.innerText = "Login";
-        }
+        document.getElementById('auth-btn-text').innerText = isLoginMode ? "Login" : "Sign Up";
+        document.getElementById('name-field').style.display = isLoginMode ? "none" : "block";
+        document.querySelector('.p .span').innerText = isLoginMode ? "Sign Up" : "Login";
     }
 
-    async function signInWithGoogle() {
-        await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
-    }
+    async function signInWithGoogle() { await supabaseClient.auth.signInWithOAuth({ provider: 'google' }); }
 
     async function handleAuthAction() {
         const email = document.getElementById('email-input').value;
         const password = document.getElementById('password-input').value;
         if(!email || !password) return alert("Please enter email and password");
-        
         if (isLoginMode) {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) alert(error.message);
         } else {
             const name = document.getElementById('name-input').value;
-            const { data, error } = await supabaseClient.auth.signUp({ 
-                email, 
-                password,
-                options: { data: { name: name || 'New User' } } 
-            });
-            if (error) alert(error.message);
-            else alert("Account created! You are now logged in.");
+            const { error } = await supabaseClient.auth.signUp({ email, password, options: { data: { name: name || 'New User' } } });
+            if (error) alert(error.message); else alert("Account created!");
         }
     }
 
-    async function signOut() {
-        closeProfileModal();
-        await supabaseClient.auth.signOut();
+    async function signOut() { closeProfileModal(); await supabaseClient.auth.signOut(); }
+
+    // Profile Modal Logic
+    function openProfileModal(isOnboarding = false) {
+        document.getElementById('profile-modal-title').innerText = isOnboarding ? "Complete Your Profile" : "My Profile";
+        document.getElementById('logout-btn').style.display = isOnboarding ? 'none' : 'block';
+        document.getElementById('profile-modal').classList.add('active');
+    }
+    function closeProfileModal() { document.getElementById('profile-modal').classList.remove('active'); }
+
+    function previewAvatar(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        pendingAvatarFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('profile-avatar-preview').innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        };
+        reader.readAsDataURL(file);
     }
 
-    // 4. Screen Management
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(screenId).classList.add('active');
-        if (screenId !== 'chat-room-screen' && realtimeSubscription) {
-            realtimeSubscription.unsubscribe();
-            realtimeSubscription = null;
+    async function saveProfile() {
+        const newName = document.getElementById('profile-name-input').value;
+        if (!newName) return alert("Please enter a name");
+
+        let avatarUrl = myProfile.avatar_url;
+
+        if (pendingAvatarFile) {
+            const fileName = `${currentUser.id}_${Date.now()}.jpg`;
+            const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(fileName, pendingAvatarFile);
+            if (uploadError) return alert("Error uploading image");
+            const { data } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+            avatarUrl = data.publicUrl;
         }
-    }
 
-    // 5. Load Chat List
-    async function loadChatList() {
-        const { data, error } = await supabaseClient
-            .from('chats')
-            .select(`
-                id, 
-                user1_id, 
-                user2_id, 
-                user1:profiles!chats_user1_id_fkey(username, converse_number), 
-                user2:profiles!chats_user2_id_fkey(username, converse_number)
-            `)
-            .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
-
-        if (error) return console.error(error);
-
-        const chatList = document.getElementById('chat-list');
-        chatList.innerHTML = '';
+        const { data, error } = await supabaseClient.from('profiles').update({ username: newName, avatar_url: avatarUrl }).eq('id', currentUser.id).select().single();
+        if (error) return alert("Error saving profile");
         
-        if(data.length === 0) {
-            chatList.innerHTML = '<p style="text-align:center; color:#667781; padding:40px 20px; font-size:0.9rem;">No chats yet.<br>Click the pencil icon to start chatting!</p>';
-            return;
-        }
-
-        data.forEach(chat => {
-            const isUser1 = chat.user1_id === currentUser.id;
-            const otherUser = isUser1 ? chat.user2 : chat.user1;
-            
-            const div = document.createElement('div');
-            div.className = 'chat-item';
-            div.onclick = () => openChat(chat.id, otherUser.username);
-            div.innerHTML = `
-                <div class="chat-avatar">${otherUser.username.charAt(0).toUpperCase()}</div>
-                <div class="chat-info">
-                    <h3>${otherUser.username}</h3>
-                    <p>Converse: ${otherUser.converse_number}</p>
-                </div>
-            `;
-            chatList.appendChild(div);
-        });
+        myProfile = data;
+        updateUIWithProfile(data);
+        pendingAvatarFile = null;
+        closeProfileModal();
+        loadChatList(); // Refresh chat list to show new name/avatar
     }
 
-    // 6. Modals
+    function copyNumber() {
+        navigator.clipboard.writeText(document.getElementById('profile-number').innerText);
+        const btn = event.target;
+        const orig = btn.innerText; btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = orig, 1500);
+    }
+
+    // New Chat Modal
     function openNewChatModal() { document.getElementById('new-chat-modal').classList.add('active'); }
     function closeNewChatModal() { 
         document.getElementById('new-chat-modal').classList.remove('active'); 
         document.getElementById('search-result').innerHTML = '';
         document.getElementById('converse-number-input').value = '';
     }
-    function openProfileModal() { document.getElementById('profile-modal').classList.add('active'); }
-    function closeProfileModal() { document.getElementById('profile-modal').classList.remove('active'); }
-
-    function copyNumber() {
-        const number = document.getElementById('profile-number').innerText;
-        navigator.clipboard.writeText(number);
-        const btn = event.target;
-        const originalText = btn.innerText;
-        btn.innerText = "Copied!";
-        setTimeout(() => btn.innerText = originalText, 1500);
-    }
 
     async function searchUser() {
         const number = document.getElementById('converse-number-input').value;
         const resultDiv = document.getElementById('search-result');
         resultDiv.innerHTML = 'Searching...';
-
-        const { data, error } = await supabaseClient
-            .from('profiles')
-            .select('id, username')
-            .eq('converse_number', number)
-            .single();
-
-        if (error || !data) {
-            resultDiv.innerHTML = '<span style="color:#ff4d4f;">No user found with that number.</span>';
-            return;
-        }
-
-        if (data.id === currentUser.id) {
-            resultDiv.innerHTML = '<span style="color:#ff4d4f;">You cannot chat with yourself!</span>';
-            return;
-        }
-
+        const { data, error } = await supabaseClient.from('profiles').select('id, username').eq('converse_number', number).single();
+        if (error || !data) { resultDiv.innerHTML = '<span style="color:#ff4d4f;">No user found.</span>'; return; }
+        if (data.id === currentUser.id) { resultDiv.innerHTML = '<span style="color:#ff4d4f;">You cannot chat with yourself!</span>'; return; }
         resultDiv.innerHTML = `<span style="color:#008069; font-weight:500;">Found: ${data.username}!</span><br><button class="button-submit" style="margin-top:10px; background:#25D366;" onclick="startChat('${data.id}', '${data.username}')">Start Chat</button>`;
     }
 
     async function startChat(otherUserId, otherUsername) {
         closeNewChatModal();
-        
-        const { data: existingChat } = await supabaseClient
-            .from('chats')
-            .select('id')
-            .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${currentUser.id})`)
-            .single();
-
-        if (existingChat) {
-            openChat(existingChat.id, otherUsername);
-        } else {
-            const { data: newChat, error } = await supabaseClient
-                .from('chats')
-                .insert([{ user1_id: currentUser.id, user2_id: otherUserId }])
-                .select().single();
-            
+        const { data: existingChat } = await supabaseClient.from('chats').select('id').or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${currentUser.id})`).single();
+        if (existingChat) { openChat(existingChat.id, otherUsername); } 
+        else {
+            const { data: newChat, error } = await supabaseClient.from('chats').insert([{ user1_id: currentUser.id, user2_id: otherUserId }]).select().single();
             if (error) return alert("Error creating chat");
             openChat(newChat.id, otherUsername);
         }
     }
 
-    // 7. Chat Room Logic
-    async function openChat(chatId, otherUsername) {
+    // Chat List Logic
+    async function loadChatList() {
+        const { data, error } = await supabaseClient.from('chats').select(`id, user1_id, user2_id, user1:profiles!chats_user1_id_fkey(username, avatar_url, converse_number), user2:profiles!chats_user2_id_fkey(username, avatar_url, converse_number)`).or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
+        if (error) return console.error(error);
+        const chatList = document.getElementById('chat-list');
+        chatList.innerHTML = '';
+        if(data.length === 0) { chatList.innerHTML = '<p style="text-align:center; color:#667781; padding:40px 20px; font-size:0.9rem;">No chats yet.<br>Click the pencil icon to start!</p>'; return; }
+        data.forEach(chat => {
+            const isUser1 = chat.user1_id === currentUser.id;
+            const otherUser = isUser1 ? chat.user2 : chat.user1;
+            const div = document.createElement('div');
+            div.className = 'chat-item';
+            div.onclick = () => openChat(chat.id, otherUser.username, otherUser.avatar_url);
+            const avatarHtml = otherUser.avatar_url ? `<img src="${otherUser.avatar_url}">` : otherUser.username.charAt(0).toUpperCase();
+            div.innerHTML = `<div class="avatar">${avatarHtml}</div><div class="chat-info"><h3>${otherUser.username}</h3><p>Converse: ${otherUser.converse_number}</p></div>`;
+            chatList.appendChild(div);
+        });
+    }
+
+    // Chat Room Logic
+    async function openChat(chatId, otherUsername, otherAvatarUrl) {
         currentChatId = chatId;
         document.getElementById('chat-username').innerText = otherUsername;
-        document.getElementById('chat-avatar').innerText = otherUsername.charAt(0).toUpperCase();
-        document.getElementById('messages-container').innerHTML = '';
-        showScreen('chat-room-screen');
+        const avatarDiv = document.getElementById('chat-avatar');
+        const avatarHtml = otherAvatarUrl ? `<img src="${otherAvatarUrl}">` : otherUsername.charAt(0).toUpperCase();
+        avatarDiv.innerHTML = avatarHtml;
+        
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('chat-room-screen').classList.remove('hidden');
+        document.getElementById('main-chat').classList.add('active'); // For mobile view
         
         await loadMessages();
         subscribeToMessages();
     }
 
+    function closeChat() {
+        document.getElementById('main-chat').classList.remove('active');
+        if (realtimeSubscription) { realtimeSubscription.unsubscribe(); realtimeSubscription = null; }
+    }
+
     async function loadMessages() {
-        const { data, error } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .eq('chat_id', currentChatId)
-            .order('created_at', { ascending: true });
-
+        const { data, error } = await supabaseClient.from('messages').select('*').eq('chat_id', currentChatId).order('created_at', { ascending: true });
         if (error) return console.error(error);
-
         const container = document.getElementById('messages-container');
         container.innerHTML = '';
         data.forEach(msg => displayMessage(msg));
@@ -449,52 +468,31 @@
 
     function subscribeToMessages() {
         if (realtimeSubscription) realtimeSubscription.unsubscribe();
-        
-        realtimeSubscription = supabaseClient
-            .channel('messages')
-            .on('postgres_changes', 
-                { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${currentChatId}` }, 
-                payload => {
-                    displayMessage(payload.new);
-                    const container = document.getElementById('messages-container');
-                    container.scrollTop = container.scrollHeight;
-                }
-            )
-            .subscribe();
+        realtimeSubscription = supabaseClient.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${currentChatId}` }, payload => {
+            displayMessage(payload.new);
+            document.getElementById('messages-container').scrollTop = document.getElementById('messages-container').scrollHeight;
+        }).subscribe();
     }
 
     function displayMessage(msg) {
         const container = document.getElementById('messages-container');
         const div = document.createElement('div');
         div.className = `message-bubble ${msg.sender_id === currentUser.id ? 'sent' : 'received'}`;
-        
-        // Format time
         const date = new Date(msg.created_at);
         const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
         div.innerHTML = `${msg.content} <span class="message-time">${timeStr}</span>`;
         container.appendChild(div);
     }
 
-    function handleKeyPress(event) {
-        if (event.key === 'Enter') sendMessage();
-    }
+    function handleKeyPress(event) { if (event.key === 'Enter') sendMessage(); }
 
     async function sendMessage() {
         const input = document.getElementById('message-input');
         const text = input.value.trim();
         if (!text) return;
-
         input.value = '';
-        
-        const { error } = await supabaseClient
-            .from('messages')
-            .insert([{ chat_id: currentChatId, sender_id: currentUser.id, content: text }]);
-
-        if (error) {
-            alert("Error sending message");
-            input.value = text;
-        }
+        const { error } = await supabaseClient.from('messages').insert([{ chat_id: currentChatId, sender_id: currentUser.id, content: text }]);
+        if (error) { alert("Error sending message"); input.value = text; }
     }
 </script>
 
