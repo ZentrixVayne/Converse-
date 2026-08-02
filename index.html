@@ -22,10 +22,13 @@
         body { background-color: var(--bg-light); height: 100vh; display: flex; justify-content: center; overflow: hidden; }
         #app-container { width: 100%; max-width: 450px; background: #fff; height: 100vh; box-shadow: 0 0 50px rgba(0,0,0,0.1); display: flex; flex-direction: column; position: relative; overflow: hidden; }
         
-        /* Screen Transitions */
+        /* Screen Transitions (FIXED) */
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; z-index: 1; }
         .screen.active { transform: translateX(0); z-index: 2; }
-        #auth-screen { transform: translateX(0); z-index: 3; }
+        /* Auth screen starts active and on top */
+        #auth-screen.active { transform: translateX(0); z-index: 3; }
+        /* When auth screen is NOT active, hide it completely */
+        #auth-screen:not(.active) { transform: translateX(-100%); pointer-events: none; z-index: 0; }
 
         /* === AUTH SCREEN === */
         #auth-screen { justify-content: center; align-items: center; background: var(--bg-light); padding: 20px; text-align: left; overflow-y: auto; }
@@ -206,7 +209,18 @@
     let isLoginMode = false;
     let myProfile = null;
 
-    // 2. Auth Logic
+    // 2. Check if user is already logged in when page loads
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+            currentUser = session.user;
+            fetchMyProfile().then(() => {
+                showScreen('chat-list-screen');
+                loadChatList();
+            });
+        }
+    });
+
+    // 3. Auth State Listener
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             currentUser = session.user;
@@ -229,13 +243,11 @@
         
         if (data) {
             myProfile = data;
-            // Update Profile Modal
             document.getElementById('profile-name').innerText = data.username || 'User';
             document.getElementById('profile-number').innerText = data.converse_number || '000000';
             document.getElementById('profile-avatar').innerText = (data.username || 'U').charAt(0).toUpperCase();
         } else if (error) {
             console.error("Error fetching profile:", error);
-            // If profile doesn't exist (rare edge case), create it manually
             if (error.code === 'PGRST116') {
                 const { data: newProfile } = await supabaseClient
                     .from('profiles')
@@ -292,7 +304,7 @@
         await supabaseClient.auth.signOut();
     }
 
-    // 3. Screen Management
+    // 4. Screen Management
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
@@ -302,7 +314,7 @@
         }
     }
 
-    // 4. Load Chat List
+    // 5. Load Chat List
     async function loadChatList() {
         const { data, error } = await supabaseClient
             .from('chats')
@@ -343,7 +355,7 @@
         });
     }
 
-    // 5. Modals
+    // 6. Modals
     function openNewChatModal() { document.getElementById('new-chat-modal').classList.add('active'); }
     function closeNewChatModal() { 
         document.getElementById('new-chat-modal').classList.remove('active'); 
@@ -408,7 +420,7 @@
         }
     }
 
-    // 6. Chat Room Logic
+    // 7. Chat Room Logic
     async function openChat(chatId, otherUsername) {
         currentChatId = chatId;
         document.getElementById('chat-username').innerText = otherUsername;
