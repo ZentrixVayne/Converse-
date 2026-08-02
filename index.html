@@ -43,7 +43,7 @@
             #main-chat.active { display: flex; }
         }
 
-        /* === AUTH SCREEN === */
+        /* === AUTH SCREEN & MODALS === */
         .modal-overlay { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .modal { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 380px; transform: scale(0.9); transition: transform 0.3s ease; box-shadow: 0 20px 50px rgba(0,0,0,0.2); text-align: left; }
@@ -300,7 +300,6 @@
         document.getElementById('profile-number').innerText = data.converse_number || '000000';
         
         const preview = document.getElementById('profile-avatar-preview');
-        const letter = document.getElementById('profile-avatar-letter');
         if (avatar) {
             preview.innerHTML = `<img src="${avatar}" alt="Avatar">`;
             document.getElementById('header-avatar').src = avatar;
@@ -366,9 +365,10 @@
         if (pendingAvatarFile) {
             const fileName = `${currentUser.id}_${Date.now()}.jpg`;
             const { error: uploadError } = await supabaseClient.storage.from('avatars').upload(fileName, pendingAvatarFile);
-            if (uploadError) return alert("Error uploading image");
-            const { data } = supabaseClient.storage.from('avatars').getPublicUrl(fileName);
-            avatarUrl = data.publicUrl;
+            if (uploadError) return alert("Error uploading image: " + uploadError.message);
+            
+            // Manually construct the public URL to ensure it works without extra policies
+            avatarUrl = `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
         }
 
         const { data, error } = await supabaseClient.from('profiles').update({ username: newName, avatar_url: avatarUrl }).eq('id', currentUser.id).select().single();
