@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Converse</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #f0f2f5; height: 100vh; display: flex; justify-content: center; }
+        #app-container { width: 100%; max-width: 450px; background: #fff; height: 100vh; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        
+        .screen { display: none; flex-direction: column; height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: #fff; }
+        .screen.active { display: flex; }
+
+        #auth-screen { justify-content: center; align-items: center; background: #f0f2f5; padding: 20px; text-align: center; }
+        #auth-screen h1 { color: #075E54; font-size: 2.5rem; margin-bottom: 10px; }
+        #auth-screen p { color: #555; margin-bottom: 30px; }
+        .btn { background: #075E54; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-top: 10px; width: 100%; }
+        .btn:hover { background: #054c44; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+
+        .header { background: #075E54; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); z-index: 10; }
+        .header h2 { font-size: 1.2rem; font-weight: 500; }
+        .chat-list { flex: 1; overflow-y: auto; }
+        .chat-item { padding: 15px; border-bottom: 1px solid #e9e9e9; display: flex; align-items: center; gap: 15px; cursor: pointer; }
+        .chat-item:hover { background: #f5f5f5; }
+        .chat-avatar { width: 50px; height: 50px; background: #ccc; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #555; }
+        .chat-info h3 { font-size: 1rem; margin-bottom: 4px; }
+        .chat-info p { font-size: 0.85rem; color: #777; }
+
+        .modal-overlay { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 300px; }
+        .modal h3 { margin-bottom: 15px; text-align: center; }
+
+        .chat-header { display: flex; align-items: center; gap: 10px; }
+        .back-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .messages-container { flex: 1; padding: 20px; overflow-y: auto; background-color: #e5ddd5; display: flex; flex-direction: column; gap: 10px; }
+        .message-bubble { max-width: 75%; padding: 10px 15px; border-radius: 8px; font-size: 0.95rem; position: relative; word-wrap: break-word; }
+        .message-bubble.sent { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+        .message-bubble.received { background: #fff; align-self: flex-start; border-top-left-radius: 0; }
+        .chat-input-area { padding: 15px; background: #f0f2f5; display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; margin: 0; }
+        .send-btn { background: #25D366; color: white; border: none; padding: 0 20px; border-radius: 8px; font-size: 1.2rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen active">
+        <h1>Converse</h1>
+        <p>Engage in conversation</p>
+        <button class="btn" onclick="signInWithGoogle()">Sign in with Google</button>
+        
+        <!-- Fallback for testing if Google isn't setup yet -->
+        <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px; width: 100%;">
+            <input type="email" id="email-input" placeholder="Email">
+            <input type="password" id="password-input" placeholder="Password">
+            <button class="btn" style="background: #ccc; color: #333;" onclick="signInWithEmail()">Sign in / Up with Email</button>
+        </div>
+    </div>
+
+    <!-- Chat List Screen -->
+    <div id="chat-list-screen" class="screen">
+        <div class="header">
+            <h2>Converse</h2>
+            <button class="back-btn" style="font-size: 1.2rem;" onclick="openNewChatModal()">+ New Chat</button>
+        </div>
+        <div class="chat-list" id="chat-list"></div>
+    </div>
+
+    <!-- Chat Room Screen -->
+    <div id="chat-room-screen" class="screen">
+        <div class="header">
+            <div class="chat-header">
+                <button class="back-btn" onclick="showScreen('chat-list-screen')">←</button>
+                <div class="chat-avatar" style="width: 35px; height: 35px; font-size: 1rem;" id="chat-avatar"></div>
+                <h2 id="chat-username">User</h2>
+            </div>
+        </div>
+        <div class="messages-container" id="messages-container"></div>
+        <div class="chat-input-area">
+            <input type="text" id="message-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+            <button class="send-btn" onclick="sendMessage()">➤</button>
+        </div>
+    </div>
+
+    <!-- New Chat Modal (Truecaller Search) -->
+    <div class="modal-overlay" id="new-chat-modal">
+        <div class="modal">
+            <h3>Find User</h3>
+            <input type="text" id="converse-number-input" placeholder="Enter Converse Number (e.g., 849204)">
+            <button class="btn" onclick="searchUser()">Search</button>
+            <div id="search-result" style="margin-top: 15px; text-align: center; font-size: 0.9rem;"></div>
+            <button class="btn" style="background: #ccc; color: #333; margin-top: 10px;" onclick="closeNewChatModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Initialize Supabase
+    const SUPABASE_URL = 'https://rgafvqhdkzbnxgsdfupv.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJnYWZ2cWhka3pibnhnc2RmdXB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNzAwNjAsImV4cCI6MjEwMDc0NjA2MH0.VJjSDtA2laJA0Q4BSxLQBcE0yHfLcofoitOTRZhjTIY';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let currentChatId = null;
+    let realtimeSubscription = null;
+
+    // 2. Auth State Listener
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            showScreen('chat-list-screen');
+            loadChatList();
+        } else {
+            currentUser = null;
+            showScreen('auth-screen');
+        }
+    });
+
+    async function signInWithGoogle() {
+        await supabase.auth.signInWithOAuth({ provider: 'google' });
+    }
+
+    async function signInWithEmail() {
+        const email = document.getElementById('email-input').value;
+        const password = document.getElementById('password-input').value;
+        if(!email || !password) return alert("Enter email and password");
+        
+        // Supabase handles both sign up and sign in (if user exists)
+        const { data, error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+        if (error) {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+            if (signUpError) alert(signUpError.message);
+        }
+        alert("Check your email for the login link!");
+    }
+
+    // 3. Screen Management
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        if (screenId !== 'chat-room-screen' && realtimeSubscription) {
+            realtimeSubscription.unsubscribe();
+            realtimeSubscription = null;
+        }
+    }
+
+    // 4. Load Chat List
+    async function loadChatList() {
+        const { data, error } = await supabase
+            .from('chats')
+            .select(`
+                id, 
+                user1_id, 
+                user2_id, 
+                user1:profiles!chats_user1_id_fkey(username, converse_number), 
+                user2:profiles!chats_user2_id_fkey(username, converse_number)
+            `)
+            .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`);
+
+        if (error) return console.error(error);
+
+        const chatList = document.getElementById('chat-list');
+        chatList.innerHTML = '';
+        
+        if(data.length === 0) {
+            chatList.innerHTML = '<p style="text-align:center; color:#777; padding:20px;">No chats yet. Click "New Chat" to start!</p>';
+            return;
+        }
+
+        data.forEach(chat => {
+            const isUser1 = chat.user1_id === currentUser.id;
+            const otherUser = isUser1 ? chat.user2 : chat.user1;
+            
+            const div = document.createElement('div');
+            div.className = 'chat-item';
+            div.onclick = () => openChat(chat.id, otherUser.username);
+            div.innerHTML = `
+                <div class="chat-avatar">${otherUser.username.charAt(0).toUpperCase()}</div>
+                <div class="chat-info">
+                    <h3>${otherUser.username}</h3>
+                    <p>Converse: ${otherUser.converse_number}</p>
+                </div>
+            `;
+            chatList.appendChild(div);
+        });
+    }
+
+    // 5. New Chat Modal (Truecaller Search)
+    function openNewChatModal() { document.getElementById('new-chat-modal').classList.add('active'); }
+    function closeNewChatModal() { 
+        document.getElementById('new-chat-modal').classList.remove('active'); 
+        document.getElementById('search-result').innerHTML = '';
+        document.getElementById('converse-number-input').value = '';
+    }
+
+    async function searchUser() {
+        const number = document.getElementById('converse-number-input').value;
+        const resultDiv = document.getElementById('search-result');
+        resultDiv.innerHTML = 'Searching...';
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .eq('converse_number', number)
+            .single();
+
+        if (error || !data) {
+            resultDiv.innerHTML = '<span style="color:red;">No user found with that number.</span>';
+            return;
+        }
+
+        if (data.id === currentUser.id) {
+            resultDiv.innerHTML = '<span style="color:red;">You cannot chat with yourself!</span>';
+            return;
+        }
+
+        resultDiv.innerHTML = `<span style="color:green;">Found: ${data.username}!</span><br><button class="btn" onclick="startChat('${data.id}', '${data.username}')">Start Chat</button>`;
+    }
+
+    async function startChat(otherUserId, otherUsername) {
+        closeNewChatModal();
+        
+        // Check if chat already exists
+        const { data: existingChat } = await supabase
+            .from('chats')
+            .select('id')
+            .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${currentUser.id})`)
+            .single();
+
+        if (existingChat) {
+            openChat(existingChat.id, otherUsername);
+        } else {
+            // Create new chat
+            const { data: newChat, error } = await supabase
+                .from('chats')
+                .insert([{ user1_id: currentUser.id, user2_id: otherUserId }])
+                .select().single();
+            
+            if (error) return alert("Error creating chat");
+            openChat(newChat.id, otherUsername);
+        }
+    }
+
+    // 6. Chat Room Logic
+    async function openChat(chatId, otherUsername) {
+        currentChatId = chatId;
+        document.getElementById('chat-username').innerText = otherUsername;
+        document.getElementById('chat-avatar').innerText = otherUsername.charAt(0).toUpperCase();
+        document.getElementById('messages-container').innerHTML = '';
+        showScreen('chat-room-screen');
+        
+        await loadMessages();
+        subscribeToMessages();
+    }
+
+    async function loadMessages() {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('chat_id', currentChatId)
+            .order('created_at', { ascending: true });
+
+        if (error) return console.error(error);
+
+        const container = document.getElementById('messages-container');
+        container.innerHTML = '';
+        data.forEach(msg => displayMessage(msg));
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function subscribeToMessages() {
+        if (realtimeSubscription) realtimeSubscription.unsubscribe();
+        
+        realtimeSubscription = supabase
+            .channel('messages')
+            .on('postgres_changes', 
+                { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${currentChatId}` }, 
+                payload => {
+                    displayMessage(payload.new);
+                    const container = document.getElementById('messages-container');
+                    container.scrollTop = container.scrollHeight;
+                }
+            )
+            .subscribe();
+    }
+
+    function displayMessage(msg) {
+        const container = document.getElementById('messages-container');
+        const div = document.createElement('div');
+        div.className = `message-bubble ${msg.sender_id === currentUser.id ? 'sent' : 'received'}`;
+        div.innerText = msg.content;
+        container.appendChild(div);
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') sendMessage();
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('message-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        input.value = '';
+        
+        const { error } = await supabase
+            .from('messages')
+            .insert([{ chat_id: currentChatId, sender_id: currentUser.id, content: text }]);
+
+        if (error) {
+            alert("Error sending message");
+            input.value = text; // put text back if failed
+        }
+    }
+</script>
+
+</body>
+</html>
